@@ -6,11 +6,28 @@ import matplotlib.pyplot as plt
 import matplotlib.image as mpimg
 import cv2
 
-red_path = r'C:\Users\lahir\data\blur_simulation\RED.CR2'
-green_path = r'C:\Users\lahir\data\blur_simulation\GREEN.CR2'
-blue_path = r'C:\Users\lahir\data\blur_simulation\BLUE.CR2'
-white_path = r'C:\Users\lahir\data\blur_simulation\WHITE.CR2'
-
+dir_path = r'C:\Users\lahir\data\blur_simulation'
+files = [f for f in os.listdir(dir_path) if f.endswith('.CR2')]
+wavelength = {
+    'amaranth': 700,
+    'amber': 599.855,
+    'appleGreen':569.363,
+    'arcticBlue': 482.402,
+    'azure': 461.022,
+    'blue': 440.020,
+    'blueViolet': 422.651,
+    'chartreuseGreen': 539.431,
+    'green': 510.028,
+    'mulberry': 412.223,
+    'orchid': 405.659,
+    'phthaloBlue': 443.661,
+    'red': 700.000,
+    'rose': 700.000,
+    'sapGreen': 515.126,
+    'seaGreen': 504.217,
+    'tangelo': 626.205,
+    'turquoise': 496.109
+}
 
 def show_img(img):
     plt.imshow(img, cmap='gray')
@@ -33,44 +50,26 @@ def minmax_norm(ar):
 def running_mean(arr, window_size):
     return np.convolve(arr, np.ones(window_size)/window_size, mode='valid')
 
+window_size = 10
+dict={} 
+for f in files:
+    file_path = os.path.join(dir_path,f)
+    img = read_cr2_to_rgb(file_path)
+    img = np.mean(img,axis=2)
+    line = img[1637,994:1787]
+    line = minmax_norm(line)
+    line_m = running_mean(line, window_size=window_size)
 
-
-red_img = read_cr2_to_rgb(red_path)
-red_img = np.mean(red_img,axis=2)
-green_img = read_cr2_to_rgb(green_path)
-green_img = np.mean(green_img,axis=2)
-blue_img = read_cr2_to_rgb(blue_path)
-blue_img = np.mean(blue_img,axis=2)
-white_img = read_cr2_to_rgb(white_path)
-white_img = np.mean(white_img,axis=2)
-
-window_size = 1
-
-red_line = red_img[1080,850:1720]
-red_line = minmax_norm(red_line)
-red_line = running_mean(red_line, window_size=window_size)
-
-green_line = green_img[1080,850:1720]
-green_line = minmax_norm(green_line)
-red_line = running_mean(red_line, window_size=window_size)
-
-blue_line = blue_img[1080,850:1720]
-blue_line = minmax_norm(blue_line)
-red_line = running_mean(red_line, window_size=window_size)
-
-white_line = white_img[1080,850:1720]
-white_line = minmax_norm(white_line)
-red_line = running_mean(red_line, window_size=window_size)
-
-#convert to grayscale
-
-
-show_img(red_img)
+    #calc Median absolute deviation
+    MAD = np.median(np.abs(line_m - np.median(line_m)))
+    dict[f.split('.')[0]] = float(MAD)
 
 pass
 
-plt.plot(red_line, color='red',   label='Red Line')
-plt.plot(green_line, color='green',   label='Green Line')
-plt.plot(blue_line, color='blue',   label='Blue Line')
-plt.plot(white_line, color='black',   label='White Line')
-plt.show(block=True)
+w,mad = [],[]
+for k in dict.keys():
+    if k in wavelength.keys():
+        mad.append(dict[k])
+        w.append(wavelength[k])
+
+plt.scatter(w, mad, color='blue', alpha=0.5, label='Data Points')  # alpha = transparency
